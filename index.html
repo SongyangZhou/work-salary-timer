@@ -284,7 +284,10 @@ body::before {
         </div>
       </div>
       <div class="hdr-time" id="hdr-t">00:00:00</div>
-      <button class="btn-cfg" onclick="openCfg()">⚙</button>
+      <div style="display:flex;gap:6px;align-items:center">
+        <a href="ideas.html" class="btn-cfg" title="Share a fun idea" style="text-decoration:none;display:inline-flex;align-items:center;gap:4px;font-size:13px;padding:5px 10px;color:var(--gold2);border-color:var(--gdim2);">💡 <span style="letter-spacing:.5px">Ideas</span></a>
+        <button class="btn-cfg" onclick="openCfg()">⚙</button>
+      </div>
     </div>
 
     <div class="xp-wrap">
@@ -341,7 +344,6 @@ body::before {
     <div class="ticker">
       <span>📢</span>
       <span class="ticker-text" id="ticker">Welcome to Paycheck Tracker — let's get this bread! 💪</span>
-      <a class="ideas-btn" href="ideas.html">💡 Ideas</a>
     </div>
   </div>
 </div>
