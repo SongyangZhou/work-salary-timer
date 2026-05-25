@@ -1,0 +1,840 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0">
+<title>Paycheck Tracker 💰</title>
+<style>
+:root {
+  --bg:     #060400;
+  --s1:     #0e0c08;
+  --s2:     #161208;
+  --gold:   #e8c060;
+  --gold2:  #c8960c;
+  --gdim:   #3a2c0a;
+  --gdim2:  #5a4418;
+  --text:   #d0bc80;
+  --dim:    #7a6a38;
+  --border: #241e08;
+  --red:    #ff6644;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { height: 100%; overflow: hidden; background: var(--bg); color: var(--text); font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; }
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 80% 50% at 50% 0%, #1a120020 0%, transparent 60%),
+    linear-gradient(rgba(200,150,12,.025) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(200,150,12,.025) 1px, transparent 1px);
+  background-size: auto, 56px 56px, 56px 56px;
+}
+
+#fx    { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
+#flash { position: fixed; inset: 0; pointer-events: none; z-index: 99; background: transparent; transition: background .06s; }
+
+/* ── SETUP ── */
+#setup {
+  position: fixed; inset: 0; z-index: 10;
+  display: flex; align-items: center; justify-content: center;
+  padding: 20px 16px; overflow-y: auto;
+}
+.card {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 24px; padding: 40px 32px;
+  width: 100%; max-width: 420px;
+  box-shadow: 0 0 80px rgba(200,150,12,.07), 0 24px 64px rgba(0,0,0,.75);
+  position: relative;
+}
+.card::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 40%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold2), transparent);
+}
+.logo  { text-align: center; font-size: 54px; margin-bottom: 6px; }
+.title { text-align: center; font-size: 26px; font-weight: 300; letter-spacing: 3px; color: var(--gold); font-family: Georgia, serif; }
+.sub   { text-align: center; font-size: 13px; color: var(--dim); margin-top: 6px; margin-bottom: 32px; }
+.line  { width: 60px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold2), transparent); margin: 0 auto 32px; }
+
+.fl { display: flex; flex-direction: column; gap: 5px; margin-bottom: 16px; }
+.fl label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dim); }
+.fl input, .fl select {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 12px 14px;
+  color: var(--text); font-size: 16px; outline: none;
+  transition: border-color .2s, box-shadow .2s;
+}
+.fl input:focus, .fl select:focus { border-color: var(--gold2); box-shadow: 0 0 0 3px rgba(200,150,12,.1); }
+.fl select option { background: var(--s2); }
+.row2 { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+.btn-go {
+  width: 100%; margin-top: 10px;
+  background: linear-gradient(135deg, #b08008, #e8c060, #b08008);
+  background-size: 200% auto;
+  border: none; border-radius: 12px; padding: 16px;
+  color: #0e0900; font-size: 15px; font-weight: 700; letter-spacing: 1px;
+  cursor: pointer;
+  transition: background-position .4s, box-shadow .2s, transform .12s;
+  box-shadow: 0 4px 24px rgba(200,150,12,.28);
+}
+.btn-go:hover { background-position: right center; transform: translateY(-2px); box-shadow: 0 8px 36px rgba(200,150,12,.45); }
+.btn-go:active { transform: none; }
+
+/* ── MAIN ── */
+#main { position: fixed; inset: 0; z-index: 1; display: none; flex-direction: column; }
+
+.hero {
+  flex: 0 0 56%; display: flex; flex-direction: column;
+  background: radial-gradient(ellipse 80% 70% at 50% 55%, #1c140420 0%, transparent 70%);
+  border-bottom: 1px solid var(--border); position: relative; overflow: hidden;
+}
+.hero::after {
+  content: '';
+  position: absolute; bottom: 0; left: 10%; right: 10%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold2), transparent);
+  opacity: .4;
+}
+
+.topbar { display: flex; align-items: center; justify-content: space-between; padding: 13px 18px 0; flex-shrink: 0; }
+.rank { display: flex; align-items: center; gap: 8px; }
+.r-emo  { font-size: 22px; }
+.r-name { font-size: 15px; font-weight: 600; color: var(--gold); line-height: 1.2; }
+.r-lv   { font-size: 12px; color: var(--dim); }
+.hdr-time { font-size: 17px; font-weight: 700; color: var(--gold); letter-spacing: 1px; font-family: 'Courier New', monospace; }
+.btn-cfg { background: none; border: 1px solid var(--border); border-radius: 8px; padding: 5px 9px; color: var(--dim); cursor: pointer; font-size: 16px; transition: border-color .2s, color .2s; }
+.btn-cfg:hover { border-color: var(--gold2); color: var(--gold); }
+
+.xp-wrap { padding: 8px 18px 0; flex-shrink: 0; }
+.xp-track { height: 4px; background: var(--gdim); border-radius: 2px; overflow: hidden; }
+.xp-bar { height: 100%; background: linear-gradient(90deg, var(--gold2), var(--gold)); border-radius: 2px; transition: width .7s cubic-bezier(.4,0,.2,1); box-shadow: 0 0 8px rgba(200,150,12,.5); }
+.xp-meta { display: flex; justify-content: space-between; margin-top: 5px; font-size: 11px; color: var(--gdim2); }
+
+.counter-wrap { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: center; padding: 4px 24px 12px; }
+.c-eyebrow { font-size: 12px; letter-spacing: 5px; color: var(--gdim2); text-transform: uppercase; margin-bottom: 10px; }
+.c-num {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(52px, 13vw, 96px); font-weight: 300;
+  color: var(--gold); letter-spacing: -3px; line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transition: color .5s, text-shadow .5s;
+  text-shadow: 0 0 30px rgba(200,150,12,.3), 0 0 60px rgba(200,150,12,.12);
+}
+.c-num.idle   { color: var(--gdim2); text-shadow: none; }
+.c-num.active { animation: auraPulse 3s ease-in-out infinite; }
+@keyframes auraPulse {
+  0%,100% { text-shadow: 0 0 30px rgba(200,150,12,.3), 0 0 60px rgba(200,150,12,.12); }
+  50%      { text-shadow: 0 0 55px rgba(200,150,12,.6), 0 0 100px rgba(200,150,12,.22); }
+}
+.c-cur { font-size: .42em; vertical-align: .15em; color: var(--gold2); }
+.c-div { width: 90px; height: 1px; background: linear-gradient(90deg, transparent, var(--gold2), transparent); margin: 12px 0 10px; }
+.c-status { display: flex; align-items: center; gap: 7px; font-size: 14px; color: var(--dim); }
+.c-dot { width: 7px; height: 7px; border-radius: 50%; background: var(--gdim2); flex-shrink: 0; }
+.c-dot.on { background: var(--gold); box-shadow: 0 0 7px var(--gold); animation: blink 2.2s ease-in-out infinite; }
+.c-dot.ot  { background: var(--red);  box-shadow: 0 0 7px var(--red);  animation: blink 1.2s ease-in-out infinite; }
+@keyframes blink { 0%,100%{opacity:1} 50%{opacity:.3} }
+.ot-badge { display: inline-flex; align-items: center; gap: 3px; background: rgba(255,100,68,.12); border: 1px solid rgba(255,100,68,.35); border-radius: 20px; padding: 2px 8px; font-size: 13px; color: var(--red); margin-left: 6px; }
+
+.bottom { flex: 1; display: flex; flex-direction: column; overflow: hidden; background: var(--s1); }
+
+.stats-row { display: grid; grid-template-columns: repeat(3,1fr); border-bottom: 1px solid var(--border); flex-shrink: 0; }
+.stat { padding: 10px 6px; text-align: center; border-right: 1px solid var(--border); }
+.stat:last-child { border-right: none; }
+.stat-v { font-size: 19px; font-weight: 700; color: var(--gold); font-variant-numeric: tabular-nums; }
+.stat-k { font-size: 12px; color: var(--dim); margin-top: 2px; }
+
+.panels { flex: 1; overflow-y: auto; padding: 12px 14px 8px; display: flex; flex-direction: column; gap: 9px; }
+.panel { background: var(--s2); border: 1px solid var(--border); border-radius: 12px; padding: 11px 14px; }
+.ph { font-size: 12px; letter-spacing: 1px; color: var(--gdim2); margin-bottom: 8px; font-weight: 600; }
+
+.buy-list { display: flex; flex-wrap: wrap; gap: 6px; }
+.chip { background: var(--s1); border: 1px solid var(--border); border-radius: 20px; padding: 5px 12px; font-size: 13px; }
+.chip b { color: var(--gold); }
+
+.goal-row { display: flex; align-items: center; gap: 10px; }
+.goal-track { flex: 1; height: 7px; background: var(--gdim); border-radius: 3px; overflow: hidden; }
+.goal-fill { height: 100%; background: linear-gradient(90deg, var(--gold2), var(--gold)); border-radius: 3px; transition: width .6s ease; box-shadow: 0 0 6px rgba(200,150,12,.5); }
+.goal-pct { font-size: 16px; font-weight: 700; color: var(--gold); min-width: 42px; text-align: right; }
+.goal-sub { font-size: 13px; color: var(--dim); margin-top: 5px; }
+
+.pd-big   { font-size: 24px; font-weight: 300; color: var(--gold); font-family: Georgia, serif; text-align: center; }
+.pd-small { font-size: 13px; color: var(--dim); text-align: center; margin-top: 4px; }
+
+.facts { font-size: 13px; color: var(--dim); line-height: 2.1; }
+.facts span { color: var(--text); }
+
+.ticker { padding: 9px 16px; background: var(--bg); border-top: 1px solid var(--border); font-size: 13px; color: var(--dim); display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap; overflow: hidden; }
+.ticker-text { overflow: hidden; text-overflow: ellipsis; }
+
+#toast {
+  position: fixed; top: 80px; left: 50%; z-index: 200;
+  transform: translateX(-50%) translateY(-16px);
+  background: var(--s1); border: 1px solid var(--gold2);
+  border-radius: 20px; padding: 18px 28px; text-align: center; min-width: 230px;
+  box-shadow: 0 0 50px rgba(200,150,12,.28), 0 20px 48px rgba(0,0,0,.7);
+  opacity: 0; pointer-events: none;
+  transition: opacity .25s, transform .25s;
+}
+#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.t-emo { font-size: 38px; display: block; margin-bottom: 6px; }
+.t-ttl { font-size: 16px; font-weight: 700; color: var(--gold); }
+.t-sub { font-size: 13px; color: var(--dim); margin-top: 3px; }
+
+#cfg {
+  position: fixed; inset: 0; z-index: 150;
+  background: rgba(6,4,0,.9); backdrop-filter: blur(12px);
+  display: none; align-items: center; justify-content: center; padding: 20px;
+}
+.cfg-card { background: var(--s1); border: 1px solid var(--border); border-radius: 22px; padding: 28px; width: 100%; max-width: 360px; max-height: 90vh; overflow-y: auto; }
+.cfg-hdr  { display: flex; align-items: center; justify-content: space-between; margin-bottom: 22px; }
+.cfg-ttl  { font-size: 18px; font-weight: 500; color: var(--gold); font-family: Georgia, serif; letter-spacing: 1px; }
+.btn-x    { background: var(--s2); border: none; border-radius: 8px; padding: 6px 10px; color: var(--dim); cursor: pointer; font-size: 16px; }
+.trow { display: flex; align-items: center; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--border); }
+.trow-l { font-size: 15px; }
+.tog { width: 44px; height: 24px; border-radius: 12px; background: var(--s2); border: 1px solid var(--border); cursor: pointer; position: relative; transition: background .2s, border-color .2s; }
+.tog.on { background: var(--gold2); border-color: var(--gold); }
+.tog::after { content: ''; position: absolute; top: 3px; left: 3px; width: 16px; height: 16px; border-radius: 50%; background: var(--gdim2); transition: left .2s, background .2s; }
+.tog.on::after { left: 23px; background: #fff; }
+.cfg-section { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--gdim2); margin: 20px 0 8px; }
+.btn-save { width: 100%; margin-top: 18px; background: linear-gradient(135deg, #b08008, #e8c060, #b08008); background-size: 200% auto; border: none; border-radius: 10px; padding: 14px; color: #0e0900; font-size: 15px; font-weight: 700; cursor: pointer; transition: background-position .4s, box-shadow .2s; box-shadow: 0 4px 18px rgba(200,150,12,.25); }
+.btn-save:hover { background-position: right center; box-shadow: 0 6px 28px rgba(200,150,12,.4); }
+.btn-rst { width: 100%; margin-top: 10px; background: none; border: 1px solid var(--border); border-radius: 10px; padding: 12px; color: var(--red); cursor: pointer; font-size: 14px; transition: border-color .2s; }
+.btn-rst:hover { border-color: var(--red); }
+
+@keyframes quake {
+  0%,100%{transform:none} 20%{transform:translate(-4px,2px)} 40%{transform:translate(4px,-2px)} 60%{transform:translate(-3px,3px)} 80%{transform:translate(3px,-1px)}
+}
+.quake { animation: quake .32s ease; }
+.panels::-webkit-scrollbar { width: 3px; }
+.panels::-webkit-scrollbar-track { background: transparent; }
+.panels::-webkit-scrollbar-thumb { background: var(--gdim); border-radius: 2px; }
+</style>
+</head>
+<body>
+
+<canvas id="fx"></canvas>
+<div id="flash"></div>
+
+<!-- SETUP -->
+<div id="setup">
+  <div class="card">
+    <div class="logo">💰</div>
+    <div class="title">Paycheck Tracker</div>
+    <div class="sub">Watch your earnings grow in real time</div>
+    <div class="line"></div>
+
+    <div class="fl">
+      <label>Monthly Salary (pre-tax)</label>
+      <input id="s-sal" type="number" placeholder="e.g. 5000" min="1" inputmode="numeric">
+    </div>
+    <div class="row2">
+      <div class="fl"><label>Work Start</label><input id="s-on"  type="time" value="09:00"></div>
+      <div class="fl"><label>Work End</label>  <input id="s-off" type="time" value="17:00"></div>
+    </div>
+    <div class="row2">
+      <div class="fl">
+        <label>Work Days / Week</label>
+        <select id="s-days">
+          <option value="5">5 days (Mon–Fri)</option>
+          <option value="6">6 days (incl. Sat)</option>
+          <option value="7">7 days (full week)</option>
+        </select>
+      </div>
+      <div class="fl">
+        <label>Currency</label>
+        <select id="s-cur">
+          <option value="$">$ USD</option>
+          <option value="£">£ GBP</option>
+          <option value="€">€ EUR</option>
+          <option value="¥">¥ JPY / CNY</option>
+        </select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="fl">
+        <label>Reward Milestone</label>
+        <input id="s-ms" type="number" value="10" min="1" placeholder="Earn how much to trigger">
+      </div>
+      <div class="fl">
+        <label>Payday (day of month)</label>
+        <select id="s-pd">
+          <option value="1">1st</option><option value="5">5th</option>
+          <option value="10">10th</option><option value="15">15th</option>
+          <option value="20">20th</option><option value="25" selected>25th</option>
+        </select>
+      </div>
+    </div>
+    <button class="btn-go" onclick="boot()">Start Earning →</button>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="hero">
+    <div class="topbar">
+      <div class="rank">
+        <span class="r-emo" id="r-emo">🐣</span>
+        <div>
+          <div class="r-name" id="r-name">Rookie Grinder</div>
+          <div class="r-lv"   id="r-lv">Lv.1</div>
+        </div>
+      </div>
+      <div class="hdr-time" id="hdr-t">00:00:00</div>
+      <button class="btn-cfg" onclick="openCfg()">⚙</button>
+    </div>
+
+    <div class="xp-wrap">
+      <div class="xp-track"><div class="xp-bar" id="xp-bar" style="width:0%"></div></div>
+      <div class="xp-meta"><span id="xp-l"></span><span id="xp-r"></span></div>
+    </div>
+
+    <div class="counter-wrap">
+      <div class="c-eyebrow">Today's Earnings</div>
+      <div class="c-num idle" id="c-num">
+        <span class="c-cur" id="c-sym">$</span><span id="c-val">0.0000</span>
+      </div>
+      <div class="c-div"></div>
+      <div class="c-status">
+        <div class="c-dot" id="c-dot"></div>
+        <span id="c-status-txt">Waiting for work hours...</span>
+      </div>
+    </div>
+  </div>
+
+  <div class="bottom">
+    <div class="stats-row">
+      <div class="stat"><div class="stat-v" id="st-today">—</div><div class="stat-k">Today</div></div>
+      <div class="stat"><div class="stat-v" id="st-week">—</div><div class="stat-k">This Week</div></div>
+      <div class="stat"><div class="stat-v" id="st-month">—</div><div class="stat-k">Month Est.</div></div>
+    </div>
+
+    <div class="panels">
+      <div class="panel">
+        <div class="ph">🛒 Today's Pay Can Buy You</div>
+        <div class="buy-list" id="buy-list">
+          <span style="color:var(--gdim2);font-size:13px">Start working to see...</span>
+        </div>
+      </div>
+      <div class="panel">
+        <div class="ph">🎯 Daily Progress</div>
+        <div class="goal-row">
+          <div class="goal-track"><div class="goal-fill" id="g-fill" style="width:0%"></div></div>
+          <div class="goal-pct" id="g-pct">0%</div>
+        </div>
+        <div class="goal-sub" id="g-sub"></div>
+      </div>
+      <div class="panel">
+        <div class="ph">📅 Payday Countdown</div>
+        <div class="pd-big"   id="pd-big">Calculating...</div>
+        <div class="pd-small" id="pd-small"></div>
+      </div>
+      <div class="panel">
+        <div class="ph">📊 Fun Stats</div>
+        <div class="facts" id="facts">Loading...</div>
+      </div>
+    </div>
+
+    <div class="ticker">
+      <span>📢</span>
+      <span class="ticker-text" id="ticker">Welcome to Paycheck Tracker — let's get this bread! 💪</span>
+    </div>
+  </div>
+</div>
+
+<div id="toast">
+  <span class="t-emo" id="t-emo">🎉</span>
+  <div class="t-ttl" id="t-ttl">Milestone hit!</div>
+  <div class="t-sub" id="t-sub"></div>
+</div>
+
+<div id="cfg">
+  <div class="cfg-card">
+    <div class="cfg-hdr">
+      <div class="cfg-ttl">Settings</div>
+      <button class="btn-x" onclick="closeCfg()">✕</button>
+    </div>
+
+    <div class="cfg-section">Features</div>
+    <div class="trow"><span class="trow-l">🔔 Milestone Sound</span><div class="tog" id="t-snd" onclick="togSet('snd')"></div></div>
+    <div class="trow"><span class="trow-l">✨ Particle Effects</span><div class="tog on" id="t-fx" onclick="togSet('fx')"></div></div>
+    <div class="trow"><span class="trow-l">💼 Overtime Mode (1.5×)</span><div class="tog" id="t-ot" onclick="togSet('ot')"></div></div>
+    <div class="trow"><span class="trow-l">📳 Haptic Feedback</span><div class="tog" id="t-vib" onclick="togSet('vib')"></div></div>
+
+    <div class="cfg-section">Parameters</div>
+    <div class="fl">
+      <label>Monthly Salary (pre-tax)</label>
+      <input id="cfg-sal" type="number" min="1" inputmode="numeric">
+    </div>
+    <div class="row2">
+      <div class="fl"><label>Work Start</label><input id="cfg-on" type="time"></div>
+      <div class="fl"><label>Work End</label>  <input id="cfg-off" type="time"></div>
+    </div>
+    <div class="row2">
+      <div class="fl">
+        <label>Work Days / Week</label>
+        <select id="cfg-days">
+          <option value="5">5 days</option>
+          <option value="6">6 days</option>
+          <option value="7">7 days</option>
+        </select>
+      </div>
+      <div class="fl">
+        <label>Currency</label>
+        <select id="cfg-cur">
+          <option value="$">$ USD</option>
+          <option value="£">£ GBP</option>
+          <option value="€">€ EUR</option>
+          <option value="¥">¥ JPY/CNY</option>
+        </select>
+      </div>
+    </div>
+    <div class="row2">
+      <div class="fl">
+        <label>Reward Milestone</label>
+        <input id="cfg-ms" type="number" min="1">
+      </div>
+      <div class="fl">
+        <label>Payday</label>
+        <select id="cfg-pd">
+          <option value="1">1st</option><option value="5">5th</option>
+          <option value="10">10th</option><option value="15">15th</option>
+          <option value="20">20th</option><option value="25">25th</option>
+        </select>
+      </div>
+    </div>
+
+    <button class="btn-save" onclick="saveCfg()">Save Settings →</button>
+    <button class="btn-rst" onclick="doReset()">Clear All Data</button>
+  </div>
+</div>
+
+<script>
+const LS = {
+  g: k => { try { return JSON.parse(localStorage.getItem(k)) } catch { return null } },
+  s: (k, v) => localStorage.setItem(k, JSON.stringify(v))
+};
+
+let cfg  = LS.g('pt_cfg') || {};
+let xp   = LS.g('pt_xp')  || 0;
+let opt  = LS.g('pt_opt') || { snd: false, fx: true, ot: false, vib: false };
+let msN  = 0;
+let lastDay = '';
+let tickI = 0, tickAt = 0, factsAt = 0;
+
+const LEVELS = [
+  { min: 0,      n: 'Rookie Grinder',   e: '🐣' },
+  { min: 500,    n: 'Regular Worker',   e: '💼' },
+  { min: 2500,   n: 'Seasoned Pro',     e: '🦊' },
+  { min: 10000,  n: 'Office Elite',     e: '⚡' },
+  { min: 50000,  n: 'Work Deity',       e: '👑' },
+  { min: 250000, n: 'Financial Free',   e: '🏆' },
+];
+
+const GOODS = [
+  { n: 'coffees',       p: 5,   e: '☕' },
+  { n: 'beers',         p: 7,   e: '🍺' },
+  { n: 'burgers',       p: 12,  e: '🍔' },
+  { n: 'pizzas',        p: 15,  e: '🍕' },
+  { n: 'movie tickets', p: 16,  e: '🎬' },
+  { n: 'subway rides',  p: 3,   e: '🚇' },
+  { n: 'candy bars',    p: 2,   e: '🍫' },
+  { n: 'smoothies',     p: 9,   e: '🥤' },
+  { n: 'tacos',         p: 4,   e: '🌮' },
+];
+
+const TICKERS = [
+  'Your coworker is definitely not working right now...',
+  'Boss alert — look busy! 👀',
+  'Someone just hit Reply All on that email...',
+  'The printer is jammed. Again.',
+  'A wild meeting appeared in your calendar!',
+  'Someone microwaved fish in the break room...',
+  'System update required. Please restart.',
+  'You\'ve been voluntold for a new project.',
+  'Free donuts in the kitchen! (They\'re gone.)',
+  'That meeting could have been an email.',
+  'Keep grinding — every second counts! 💪',
+  'Your future self is grateful for your effort today.',
+  'Money doesn\'t sleep, and neither do you.',
+  'Progress, not perfection. You\'re doing great.',
+  'One step closer to financial freedom.',
+  'You\'re earning more than you\'d make sleeping.',
+  'Time is money — and yours is ticking up.',
+  'Another hour down. Another milestone closer.',
+  'Side hustle? Nah. This IS the hustle.',
+  'TGIF... or is it Tuesday? Either way, keep earning.',
+];
+
+const LEVEL_UP_MSG = [
+  '',
+  '🎖️ Level Up! You are now a Regular Worker',
+  '🦊 Level Up! Unlocked: Seasoned Pro',
+  '⚡ Level Up! Unlocked: Office Elite',
+  '👑 Level Up! Unlocked: Work Deity',
+  '🏆 Max level reached: Financial Freedom!',
+];
+
+function pt(s) { const [h, m] = s.split(':').map(Number); return h * 60 + m; }
+
+function hourlyRate() {
+  const workMins = pt(cfg.off) - pt(cfg.on);
+  return cfg.sal / (cfg.days * (52 / 12) * (workMins / 60));
+}
+
+function isWorkDay(d) {
+  const w = d.getDay();
+  if (cfg.days == 5) return w >= 1 && w <= 5;
+  if (cfg.days == 6) return w >= 1 && w <= 6;
+  return true;
+}
+
+function todayEarned(now) {
+  if (!isWorkDay(now)) return 0;
+  const mins = now.getHours() * 60 + now.getMinutes() + now.getSeconds() / 60;
+  const on = pt(cfg.on), off = pt(cfg.off);
+  if (mins < on) return 0;
+  const hr = hourlyRate();
+  if (mins >= off) {
+    if (opt.ot) return (off - on) / 60 * hr + (mins - off) / 60 * hr * 1.5;
+    return (off - on) / 60 * hr;
+  }
+  return (mins - on) / 60 * hr;
+}
+
+function fullDay() { return (pt(cfg.off) - pt(cfg.on)) / 60 * hourlyRate(); }
+
+function weekEarned(now) {
+  let total = 0;
+  const dow = now.getDay();
+  for (let i = 0; i < dow; i++) {
+    const d = new Date(now); d.setDate(d.getDate() - (dow - i));
+    if (isWorkDay(d)) total += fullDay();
+  }
+  return total + todayEarned(now);
+}
+
+function monthEstimate() { return fullDay() * cfg.days * (52 / 12); }
+
+function workStatus(now) {
+  if (!isWorkDay(now)) return { type: 'rest', txt: 'Weekend — enjoy your time off! 🎉' };
+  const m = now.getHours() * 60 + now.getMinutes();
+  const on = pt(cfg.on), off = pt(cfg.off);
+  if (m < on) {
+    const d = on - m;
+    return { type: 'before', txt: `Work starts in ${~~(d/60)}h ${d%60}m` };
+  }
+  if (m >= off && !opt.ot) return { type: 'done', txt: 'Done for today ✓' };
+  const worked = m - on;
+  const ws = `${~~(worked/60)}h ${worked%60}m worked`;
+  if (opt.ot && m >= off) {
+    const ot = m - off;
+    return { type: 'ot', txt: `Overtime: ${~~(ot/60)}h ${ot%60}m · ${ws}` };
+  }
+  return { type: 'work', txt: `${ws} · ${~~((off-m)/60)}h ${(off-m)%60}m left` };
+}
+
+function getLevel(v) {
+  let lv = LEVELS[0], idx = 0;
+  for (let i = 0; i < LEVELS.length; i++) {
+    if (v >= LEVELS[i].min) { lv = LEVELS[i]; idx = i; } else break;
+  }
+  const next = LEVELS[idx + 1];
+  return { ...lv, idx, next, pct: Math.min(next ? (v - lv.min) / (next.min - lv.min) * 100 : 100, 100) };
+}
+
+function fmtMoney(n) {
+  if (n >= 1000000) return (n / 1000000).toFixed(1) + 'M';
+  if (n >= 1000)    return (n / 1000).toFixed(1) + 'k';
+  return n.toFixed(2);
+}
+
+// Canvas particles
+const cvs = document.getElementById('fx');
+const ctx = cvs.getContext('2d');
+let coins = [], sparks = [];
+function resizeCvs() { cvs.width = innerWidth; cvs.height = innerHeight; }
+addEventListener('resize', resizeCvs); resizeCvs();
+
+class Coin {
+  constructor() {
+    this.x = Math.random() * innerWidth; this.y = -40 - Math.random() * 100;
+    this.vx = (Math.random() - .5) * 6; this.vy = 2 + Math.random() * 4;
+    this.r = 12 + Math.random() * 14; this.rot = Math.random() * Math.PI * 2;
+    this.rv = (Math.random() - .5) * .28; this.a = 1; this.hue = 40 + Math.random() * 15;
+  }
+  update() {
+    this.vy += .14; this.x += this.vx; this.y += this.vy; this.rot += this.rv;
+    if (this.y > innerHeight * .72) this.a -= .024;
+    return this.a > 0;
+  }
+  draw() {
+    const sx = Math.max(Math.abs(Math.cos(this.rot)), .04);
+    ctx.save(); ctx.globalAlpha = this.a; ctx.translate(this.x, this.y); ctx.scale(sx, 1);
+    const g = ctx.createRadialGradient(-this.r*.3,-this.r*.3,0,0,0,this.r);
+    g.addColorStop(0, `hsl(${this.hue+14},100%,83%)`);
+    g.addColorStop(.6, `hsl(${this.hue},90%,56%)`);
+    g.addColorStop(1, `hsl(${this.hue-10},80%,34%)`);
+    ctx.beginPath(); ctx.arc(0,0,this.r,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+    ctx.strokeStyle=`hsl(${this.hue-12},70%,38%)`; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.scale(1/sx,1); ctx.fillStyle=`hsl(${this.hue-10},55%,28%)`;
+    ctx.font=`bold ${Math.round(this.r*.88)}px sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(cfg.cur||'$',0,1); ctx.restore();
+  }
+}
+
+class Spark {
+  constructor() {
+    this.x=(Math.random()-.5)*180+innerWidth/2; this.y=(Math.random()-.5)*80+innerHeight*.32;
+    this.vx=(Math.random()-.5)*14; this.vy=(Math.random()-.5)*14-3;
+    this.r=1.5+Math.random()*3; this.a=1; this.hue=Math.random()>.5?46:52;
+  }
+  update() { this.x+=this.vx; this.y+=this.vy; this.vy+=.13; this.a-=.02; return this.a>0; }
+  draw() {
+    ctx.save(); ctx.globalAlpha=this.a;
+    ctx.shadowColor=`hsl(${this.hue},100%,72%)`; ctx.shadowBlur=9;
+    ctx.fillStyle=`hsl(${this.hue},100%,74%)`;
+    ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+}
+
+function spawnReward(n=72) {
+  for (let i=0;i<n;i++) setTimeout(()=>coins.push(new Coin()),i*18);
+  for (let i=0;i<55;i++) setTimeout(()=>sparks.push(new Spark()),i*20);
+}
+
+(function fxLoop() {
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+  coins  = coins.filter(c=>{const ok=c.update();if(ok)c.draw();return ok;});
+  sparks = sparks.filter(s=>{const ok=s.update();if(ok)s.draw();return ok;});
+  requestAnimationFrame(fxLoop);
+})();
+
+function playCoins() {
+  if (!opt.snd) return;
+  try {
+    const ac = new (window.AudioContext || window.webkitAudioContext)();
+    const now = ac.currentTime;
+    const sr = ac.sampleRate;
+    const buf = ac.createBuffer(1, sr * 0.5, sr);
+    const bd = buf.getChannelData(0);
+    for (let i = 0; i < bd.length; i++) bd[i] = Math.random() * 2 - 1;
+    const noise = ac.createBufferSource(); noise.buffer = buf;
+    const hpf = ac.createBiquadFilter(); hpf.type = 'highpass'; hpf.frequency.value = 5500;
+    const ng = ac.createGain();
+    noise.connect(hpf); hpf.connect(ng); ng.connect(ac.destination);
+    ng.gain.setValueAtTime(0,now); ng.gain.linearRampToValueAtTime(0.07,now+0.03);
+    ng.gain.exponentialRampToValueAtTime(0.001,now+0.42);
+    noise.start(now); noise.stop(now+0.5);
+    [523,659,784,1047].forEach((freq,i)=>{
+      const o=ac.createOscillator(),g=ac.createGain();
+      o.connect(g); g.connect(ac.destination); o.type='triangle'; o.frequency.value=freq;
+      const t=now+i*0.055;
+      g.gain.setValueAtTime(0.10,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.32);
+      o.start(t); o.stop(t+0.36);
+    });
+    const clinkTimes = [];
+    for (let i=0;i<5;i++)  clinkTimes.push(now+0.04+i*0.05+Math.random()*0.03);
+    for (let i=0;i<13;i++) clinkTimes.push(now+0.28+Math.random()*1.1);
+    for (let i=0;i<4;i++)  clinkTimes.push(now+1.3+Math.random()*0.38);
+    clinkTimes.forEach(t=>{
+      const pitch=0.55+Math.random()*1.1;
+      [[1,0.22],[2.76,0.07]].forEach(([ratio,vol])=>{
+        const o=ac.createOscillator(),g=ac.createGain();
+        o.connect(g); g.connect(ac.destination); o.type='sine';
+        const f0=2000*pitch*ratio;
+        o.frequency.setValueAtTime(f0,t); o.frequency.exponentialRampToValueAtTime(f0*0.48,t+0.14);
+        g.gain.setValueAtTime(vol,t); g.gain.exponentialRampToValueAtTime(0.001,t+0.20);
+        o.start(t); o.stop(t+0.22);
+      });
+    });
+  } catch(_) {}
+}
+
+let prevLvIdx = -1;
+
+function triggerMilestone(amt) {
+  const fl = document.getElementById('flash');
+  fl.style.background = 'rgba(200,150,12,.2)';
+  setTimeout(() => { fl.style.background = 'transparent'; }, 380);
+  const cn = document.getElementById('c-num');
+  cn.classList.add('quake'); setTimeout(() => cn.classList.remove('quake'), 380);
+  if (opt.fx) spawnReward();
+  playCoins();
+  if (opt.vib && navigator.vibrate) navigator.vibrate([60, 40, 60]);
+  xp += amt; LS.s('pt_xp', xp);
+  const lv = getLevel(xp);
+  if (prevLvIdx >= 0 && lv.idx > prevLvIdx && LEVEL_UP_MSG[lv.idx]) {
+    setTimeout(() => toast('🎊', LEVEL_UP_MSG[lv.idx], `You are now: ${lv.e} ${lv.n}`), 1200);
+  }
+  prevLvIdx = lv.idx;
+  toast('🪙', `+${cfg.cur}${amt} milestone!`, 'Coins raining from the sky ✨');
+}
+
+let toastTmr;
+function toast(emo, ttl, sub) {
+  document.getElementById('t-emo').textContent = emo;
+  document.getElementById('t-ttl').textContent = ttl;
+  document.getElementById('t-sub').textContent = sub;
+  document.getElementById('toast').classList.add('show');
+  clearTimeout(toastTmr);
+  toastTmr = setTimeout(() => document.getElementById('toast').classList.remove('show'), 3400);
+}
+
+function tick() {
+  const now = new Date();
+  const dayStr = now.toDateString();
+  if (lastDay && lastDay !== dayStr) { msN = 0; }
+  lastDay = dayStr;
+
+  const earned = todayEarned(now);
+  const status = workStatus(now);
+  const working = status.type === 'work' || status.type === 'ot';
+
+  document.getElementById('hdr-t').textContent = now.toTimeString().slice(0, 8);
+
+  const cn = document.getElementById('c-num');
+  cn.className = 'c-num ' + (working ? 'active' : 'idle');
+  document.getElementById('c-sym').textContent = cfg.cur;
+  document.getElementById('c-val').textContent = earned.toFixed(2);
+
+  const dot = document.getElementById('c-dot');
+  dot.className = 'c-dot' + (working ? (status.type === 'ot' ? ' ot' : ' on') : '');
+  const statusEl = document.getElementById('c-status-txt');
+  if (status.type === 'ot') {
+    statusEl.innerHTML = `${status.txt} <span class="ot-badge">⚡ OT</span>`;
+  } else {
+    statusEl.textContent = status.txt;
+  }
+
+  document.getElementById('st-today').textContent = cfg.cur + fmtMoney(earned);
+  document.getElementById('st-week').textContent  = cfg.cur + fmtMoney(weekEarned(now));
+  document.getElementById('st-month').textContent = cfg.cur + fmtMoney(monthEstimate());
+
+  if (earned > 0.5) {
+    const items = GOODS.filter(g => earned >= g.p).slice(0, 5);
+    document.getElementById('buy-list').innerHTML = items.length
+      ? items.map(g => `<span class="chip">${g.e} <b>×${~~(earned/g.p)}</b> ${g.n}</span>`).join('')
+      : '<span style="color:var(--gdim2);font-size:13px">A bit more and you can buy something...</span>';
+  }
+
+  const fd = fullDay(), pct = Math.min(earned / fd * 100, 100);
+  document.getElementById('g-fill').style.width = pct + '%';
+  document.getElementById('g-pct').textContent  = pct.toFixed(0) + '%';
+  document.getElementById('g-sub').textContent  = `Goal: ${cfg.cur}${fd.toFixed(0)} · Earned: ${cfg.cur}${earned.toFixed(2)}`;
+
+  let nxt = new Date(now);
+  if (now.getDate() >= cfg.pd) nxt.setMonth(nxt.getMonth() + 1);
+  nxt.setDate(cfg.pd); nxt.setHours(0, 0, 0, 0);
+  const diff = nxt - now, dd = ~~(diff/86400000), dh = ~~(diff%86400000/3600000);
+  document.getElementById('pd-big').textContent   = dd === 0 ? 'Payday is TODAY! 🎉' : `${dd} days ${dh} hours`;
+  document.getElementById('pd-small').textContent = `Payday: the ${cfg.pd}${['th','st','nd','rd'][Math.min(cfg.pd%10*(cfg.pd<4||cfg.pd>20?1:0),3)]} · ${cfg.cur}${cfg.sal.toLocaleString()}`;
+
+  const displayXP = xp + earned * .12;
+  const lv = getLevel(displayXP);
+  if (prevLvIdx < 0) prevLvIdx = lv.idx;
+  document.getElementById('r-emo').textContent  = lv.e;
+  document.getElementById('r-name').textContent = lv.n;
+  document.getElementById('r-lv').textContent   = `Lv.${lv.idx + 1}`;
+  document.getElementById('xp-bar').style.width = lv.pct + '%';
+  document.getElementById('xp-l').textContent   = `${lv.e} ${lv.n}`;
+  document.getElementById('xp-r').textContent   = lv.next ? `→ ${lv.next.e} ${lv.next.n}` : '✦ Max Level';
+
+  if (working && cfg.ms > 0) {
+    const n = ~~(earned / cfg.ms);
+    if (n > msN) { msN = n; triggerMilestone(cfg.ms); }
+  }
+
+  const now_ms = Date.now();
+  if (now_ms - tickAt > 7800) {
+    tickAt = now_ms;
+    document.getElementById('ticker').textContent = TICKERS[tickI++ % TICKERS.length];
+  }
+
+  if (now_ms - factsAt > 12000) {
+    factsAt = now_ms;
+    const hr = hourlyRate();
+    document.getElementById('facts').innerHTML = [
+      `Per hour: <span>${cfg.cur}${hr.toFixed(2)}</span>`,
+      `Per minute: <span>${cfg.cur}${(hr/60).toFixed(3)}</span>`,
+      `Per second: <span>${cfg.cur}${(hr/3600).toFixed(5)}</span>`,
+      `Annual estimate: <span>${cfg.cur}${(cfg.sal*12).toLocaleString()}</span>`,
+      `After 1,000 hours: <span>${cfg.cur}${(hr*1000).toLocaleString()}</span>`,
+    ].map(s => `<div>· ${s}</div>`).join('');
+  }
+}
+
+function openCfg() {
+  document.getElementById('cfg-sal').value  = cfg.sal;
+  document.getElementById('cfg-on').value   = cfg.on;
+  document.getElementById('cfg-off').value  = cfg.off;
+  document.getElementById('cfg-days').value = cfg.days;
+  document.getElementById('cfg-cur').value  = cfg.cur;
+  document.getElementById('cfg-ms').value   = cfg.ms;
+  document.getElementById('cfg-pd').value   = cfg.pd;
+  syncTogs();
+  document.getElementById('cfg').style.display = 'flex';
+}
+function saveCfg() {
+  const sal = parseFloat(document.getElementById('cfg-sal').value);
+  if (!sal || sal <= 0) { alert('Please enter a valid monthly salary'); return; }
+  cfg.sal  = sal;
+  cfg.on   = document.getElementById('cfg-on').value;
+  cfg.off  = document.getElementById('cfg-off').value;
+  cfg.days = +document.getElementById('cfg-days').value;
+  cfg.cur  = document.getElementById('cfg-cur').value;
+  cfg.ms   = +document.getElementById('cfg-ms').value || 10;
+  cfg.pd   = +document.getElementById('cfg-pd').value;
+  LS.s('pt_cfg', cfg);
+  msN = ~~(todayEarned(new Date()) / cfg.ms);
+  document.getElementById('cfg').style.display = 'none';
+  toast('✅', 'Settings saved!', 'New parameters take effect immediately');
+}
+function closeCfg() { document.getElementById('cfg').style.display = 'none'; }
+function togSet(k) {
+  opt[k] = !opt[k]; LS.s('pt_opt', opt); syncTogs();
+  if (k === 'ot' && opt.ot)  toast('⚡', 'Overtime mode ON', 'Hours past end time count at 1.5×');
+  if (k === 'ot' && !opt.ot) toast('😮‍💨', 'Overtime mode OFF', 'Rest up — you\'ve earned it!');
+}
+function syncTogs() {
+  ['snd','fx','ot','vib'].forEach(k => {
+    document.getElementById('t-' + k).className = 'tog' + (opt[k] ? ' on' : '');
+  });
+}
+function doReset() {
+  if (confirm('Clear all data (including progress) and start over?')) {
+    localStorage.clear(); location.reload();
+  }
+}
+
+function boot() {
+  const sal = parseFloat(document.getElementById('s-sal').value);
+  if (!sal || sal <= 0) { alert('Please enter a valid monthly salary'); return; }
+  cfg = {
+    sal, on: document.getElementById('s-on').value, off: document.getElementById('s-off').value,
+    days: +document.getElementById('s-days').value, cur: document.getElementById('s-cur').value,
+    ms: +document.getElementById('s-ms').value || 10, pd: +document.getElementById('s-pd').value,
+  };
+  LS.s('pt_cfg', cfg);
+  startMain();
+}
+
+function startMain() {
+  msN = ~~(todayEarned(new Date()) / cfg.ms);
+  prevLvIdx = getLevel(xp).idx;
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('main').style.display  = 'flex';
+  tick(); setInterval(tick, 100);
+  setTimeout(() => {
+    const h = new Date().getHours();
+    const greet = h < 6 ? 'Up late?' : h < 12 ? 'Good morning' : h < 18 ? 'Good afternoon' : h < 22 ? 'Good evening' : 'Night shift — respect';
+    toast('👋', `${greet}!`, 'Tracker started — let\'s get this bread 💰');
+  }, 700);
+}
+
+if (cfg.sal) startMain();
+</script>
+</body>
+</html>
