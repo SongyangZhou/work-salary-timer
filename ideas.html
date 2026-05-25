@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>💡 Idea Box — What would make life more fun?</title>
+<style>
+:root {
+  --bg:      #06040a;
+  --s1:      #0e0c14;
+  --s2:      #161220;
+  --gold:    #e8c060;
+  --gold2:   #c8960c;
+  --purple:  #a077ff;
+  --purple2: #6644cc;
+  --text:    #d4c8f0;
+  --dim:     #7060a0;
+  --border:  #241e38;
+  --green:   #44ddaa;
+}
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html, body { min-height: 100%; background: var(--bg); color: var(--text); font-family: -apple-system, 'Helvetica Neue', Arial, sans-serif; }
+
+body::before {
+  content: '';
+  position: fixed; inset: 0; pointer-events: none; z-index: 0;
+  background:
+    radial-gradient(ellipse 60% 50% at 50% 0%,  #2a1a5020 0%, transparent 55%),
+    radial-gradient(ellipse 40% 30% at 80% 80%,  #1a0a3020 0%, transparent 50%),
+    linear-gradient(rgba(160,119,255,.018) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(160,119,255,.018) 1px, transparent 1px);
+  background-size: auto, auto, 52px 52px, 52px 52px;
+}
+
+/* ── FX ── */
+#fx    { position: fixed; inset: 0; pointer-events: none; z-index: 100; }
+#flash { position: fixed; inset: 0; pointer-events: none; z-index: 99; background: transparent; transition: background .08s; }
+
+/* ── LAYOUT ── */
+.page {
+  position: relative; z-index: 1;
+  min-height: 100vh; display: flex; flex-direction: column;
+  align-items: center; justify-content: center;
+  padding: 40px 20px 60px;
+}
+
+/* ── HEADER ── */
+.hdr { text-align: center; margin-bottom: 48px; }
+.hdr-back {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 13px; color: var(--dim); text-decoration: none;
+  border: 1px solid var(--border); border-radius: 20px; padding: 5px 14px;
+  margin-bottom: 32px; transition: border-color .2s, color .2s;
+}
+.hdr-back:hover { border-color: var(--purple); color: var(--purple); }
+.hdr-icon { font-size: 56px; display: block; margin-bottom: 12px; filter: drop-shadow(0 0 20px rgba(160,119,255,.4)); }
+.hdr-title {
+  font-size: 32px; font-weight: 300; letter-spacing: 2px;
+  color: var(--gold); font-family: Georgia, serif;
+  margin-bottom: 10px;
+}
+.hdr-sub { font-size: 15px; color: var(--dim); line-height: 1.6; max-width: 420px; margin: 0 auto; }
+.hdr-sub em { color: var(--text); font-style: normal; }
+
+/* ── CARD ── */
+.card {
+  background: var(--s1); border: 1px solid var(--border);
+  border-radius: 24px; padding: 36px 32px;
+  width: 100%; max-width: 520px;
+  box-shadow: 0 0 80px rgba(160,119,255,.07), 0 24px 64px rgba(0,0,0,.7);
+  position: relative;
+}
+.card::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translateX(-50%);
+  width: 35%; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--purple2), transparent);
+}
+
+/* ── FORM ── */
+.form-label {
+  font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase;
+  color: var(--dim); margin-bottom: 10px; display: block;
+}
+
+.idea-box {
+  width: 100%; min-height: 140px; resize: vertical;
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 14px; padding: 16px;
+  color: var(--text); font-size: 16px; line-height: 1.6;
+  outline: none; font-family: inherit;
+  transition: border-color .2s, box-shadow .2s;
+  margin-bottom: 14px;
+}
+.idea-box:focus {
+  border-color: var(--purple2);
+  box-shadow: 0 0 0 3px rgba(160,119,255,.12);
+}
+.idea-box::placeholder { color: var(--dim); }
+
+.char-count { font-size: 11px; color: var(--dim); text-align: right; margin-top: -10px; margin-bottom: 14px; }
+.char-count.warn { color: var(--gold2); }
+
+.name-row { display: flex; gap: 12px; margin-bottom: 22px; }
+.name-input {
+  flex: 1; background: var(--s2); border: 1px solid var(--border);
+  border-radius: 10px; padding: 11px 14px;
+  color: var(--text); font-size: 15px; outline: none; font-family: inherit;
+  transition: border-color .2s;
+}
+.name-input:focus { border-color: var(--purple2); }
+.name-input::placeholder { color: var(--dim); }
+
+.emoji-picker {
+  display: flex; gap: 6px; flex-wrap: wrap;
+}
+.ep-btn {
+  font-size: 22px; cursor: pointer; padding: 4px;
+  border-radius: 8px; border: 2px solid transparent;
+  background: none; transition: border-color .15s, transform .1s;
+}
+.ep-btn:hover { transform: scale(1.2); }
+.ep-btn.active { border-color: var(--purple); background: rgba(160,119,255,.1); }
+
+.category-row { margin-bottom: 22px; }
+.cat-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 8px; }
+.cat-chip {
+  background: var(--s2); border: 1px solid var(--border);
+  border-radius: 20px; padding: 6px 14px; font-size: 13px;
+  cursor: pointer; transition: border-color .2s, background .2s, color .2s;
+  color: var(--dim);
+}
+.cat-chip:hover { border-color: var(--purple2); color: var(--text); }
+.cat-chip.active { border-color: var(--purple); background: rgba(160,119,255,.12); color: var(--purple); }
+
+.divider { height: 1px; background: linear-gradient(90deg, transparent, var(--border), transparent); margin: 0 0 22px; }
+
+.btn-submit {
+  width: 100%;
+  background: linear-gradient(135deg, #5533aa, #a077ff, #5533aa);
+  background-size: 200% auto;
+  border: none; border-radius: 12px; padding: 16px;
+  color: #fff; font-size: 16px; font-weight: 700; letter-spacing: .5px;
+  cursor: pointer;
+  transition: background-position .4s, box-shadow .2s, transform .12s;
+  box-shadow: 0 4px 24px rgba(160,119,255,.3);
+  display: flex; align-items: center; justify-content: center; gap: 8px;
+}
+.btn-submit:hover { background-position: right center; transform: translateY(-2px); box-shadow: 0 8px 36px rgba(160,119,255,.45); }
+.btn-submit:active { transform: none; }
+.btn-submit.loading { opacity: .7; pointer-events: none; }
+
+.privacy-note { text-align: center; font-size: 12px; color: var(--dim); margin-top: 14px; line-height: 1.5; }
+
+/* ── SUCCESS STATE ── */
+.success-state {
+  display: none; text-align: center; padding: 20px 0;
+}
+.success-state.show { display: block; }
+.success-icon { font-size: 64px; display: block; margin-bottom: 16px; animation: popIn .4s cubic-bezier(.34,1.56,.64,1); }
+@keyframes popIn { from { transform: scale(0); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+.success-title { font-size: 24px; font-weight: 300; color: var(--green); font-family: Georgia, serif; margin-bottom: 10px; }
+.success-sub { font-size: 14px; color: var(--dim); line-height: 1.7; margin-bottom: 24px; }
+.btn-another {
+  background: none; border: 1px solid var(--border); border-radius: 10px; padding: 11px 24px;
+  color: var(--dim); cursor: pointer; font-size: 14px; transition: border-color .2s, color .2s;
+}
+.btn-another:hover { border-color: var(--purple); color: var(--purple); }
+
+/* ── WALL PREVIEW ── */
+.wall-section { width: 100%; max-width: 520px; margin-top: 36px; }
+.wall-title {
+  text-align: center; font-size: 11px; letter-spacing: 2px;
+  text-transform: uppercase; color: var(--dim); margin-bottom: 16px;
+}
+.wall-scroll {
+  display: flex; flex-direction: column; gap: 10px;
+}
+.idea-card {
+  background: var(--s1); border: 1px solid var(--border); border-radius: 12px;
+  padding: 14px 16px; position: relative; overflow: hidden;
+}
+.idea-card::before {
+  content: '';
+  position: absolute; left: 0; top: 0; bottom: 0; width: 3px;
+  background: linear-gradient(180deg, var(--purple2), var(--gold2));
+  border-radius: 3px 0 0 3px;
+}
+.idea-text { font-size: 14px; line-height: 1.6; color: var(--text); margin-bottom: 6px; padding-left: 4px; }
+.idea-meta { font-size: 11px; color: var(--dim); padding-left: 4px; }
+
+/* ── FOOTER ── */
+.footer {
+  text-align: center; margin-top: 48px;
+  font-size: 12px; color: var(--dim); line-height: 2;
+}
+.footer a { color: var(--gold2); text-decoration: none; }
+.footer a:hover { color: var(--gold); }
+
+/* ── ERROR ── */
+.error-msg { font-size: 13px; color: #ff6655; margin-top: 10px; text-align: center; display: none; }
+.error-msg.show { display: block; }
+</style>
+</head>
+<body>
+
+<canvas id="fx"></canvas>
+<div id="flash"></div>
+
+<div class="page">
+
+  <!-- HEADER -->
+  <div class="hdr">
+    <a href="index.html" class="hdr-back">← Back to Paycheck Tracker</a>
+    <span class="hdr-icon">💡</span>
+    <div class="hdr-title">The Idea Box</div>
+    <div class="hdr-sub">
+      Got something that would make daily life <em>a little more fun</em>?<br>
+      Drop it here. No account. No filters. Just vibes.
+    </div>
+  </div>
+
+  <!-- SUBMISSION CARD -->
+  <div class="card" id="form-card">
+
+    <!-- FORM STATE -->
+    <div id="form-state">
+      <label class="form-label">Your idea 💬</label>
+      <textarea class="idea-box" id="idea-text" maxlength="500"
+        placeholder="e.g. A button that makes satisfying ding sounds every time you finish a task..."></textarea>
+      <div class="char-count" id="char-count">0 / 500</div>
+
+      <div class="category-row">
+        <div class="form-label">Category (optional)</div>
+        <div class="cat-chips">
+          <span class="cat-chip" data-cat="app">📱 App Feature</span>
+          <span class="cat-chip" data-cat="life">🌱 Life Hack</span>
+          <span class="cat-chip" data-cat="work">💼 Work Fun</span>
+          <span class="cat-chip" data-cat="social">🎉 Social</span>
+          <span class="cat-chip" data-cat="random">🎲 Random</span>
+        </div>
+      </div>
+
+      <div class="divider"></div>
+
+      <label class="form-label">Sign it (optional)</label>
+      <div class="name-row">
+        <input class="name-input" id="idea-name" type="text" maxlength="40"
+          placeholder="Nickname, emoji, or stay anonymous...">
+      </div>
+      <div class="emoji-picker" id="emoji-picker">
+        <button class="ep-btn" data-emoji="🐣" type="button">🐣</button>
+        <button class="ep-btn" data-emoji="🦊" type="button">🦊</button>
+        <button class="ep-btn" data-emoji="⚡" type="button">⚡</button>
+        <button class="ep-btn" data-emoji="👑" type="button">👑</button>
+        <button class="ep-btn" data-emoji="🌙" type="button">🌙</button>
+        <button class="ep-btn" data-emoji="🔥" type="button">🔥</button>
+        <button class="ep-btn" data-emoji="🎸" type="button">🎸</button>
+        <button class="ep-btn" data-emoji="🚀" type="button">🚀</button>
+      </div>
+
+      <div style="margin-top:24px"></div>
+      <button class="btn-submit" id="btn-submit" type="button" onclick="submitIdea()">
+        <span>Drop Your Idea</span> <span>🪙</span>
+      </button>
+      <div class="error-msg" id="error-msg">Something went wrong. Please try again.</div>
+      <div class="privacy-note">Anonymous · No account needed · Ideas may be featured publicly</div>
+    </div>
+
+    <!-- SUCCESS STATE -->
+    <div class="success-state" id="success-state">
+      <span class="success-icon">✨</span>
+      <div class="success-title">Idea received!</div>
+      <div class="success-sub">
+        You just made the world a tiny bit more fun.<br>
+        Seriously, thank you.
+      </div>
+      <button class="btn-another" onclick="resetForm()">Drop another idea →</button>
+    </div>
+
+  </div>
+
+  <!-- FEATURED IDEAS WALL -->
+  <div class="wall-section">
+    <div class="wall-title">✦ Featured Ideas ✦</div>
+    <div class="wall-scroll" id="wall"></div>
+  </div>
+
+  <!-- FOOTER -->
+  <div class="footer">
+    <a href="index.html">← Paycheck Tracker</a> &nbsp;·&nbsp;
+    Made with 💰 and too much free time
+  </div>
+
+</div>
+
+<script>
+// ── CONFIG ──────────────────────────────────────────────────────
+// 1. Sign up free at https://formspree.io
+// 2. Create a new form, copy the form ID (e.g. "xabc1234")
+// 3. Replace YOUR_FORM_ID below
+const FORMSPREE_ID = 'YOUR_FORM_ID';
+const FORMSPREE_URL = `https://formspree.io/f/${FORMSPREE_ID}`;
+
+// ── FEATURED IDEAS (curate these manually) ───────────────────────
+const FEATURED = [
+  { text: "A 'done for the day' button that plays a tiny fanfare and shuts your laptop screen.", by: "🎸 Anonymous", cat: "Work Fun" },
+  { text: "Random compliment generator that interrupts you mid-meeting to say 'hey, your posture looks great today.'", by: "🌙 A dreamer", cat: "App Feature" },
+  { text: "A jar you fill with tiny notes about good things that happened. Open it when life feels bleak.", by: "🦊 Life Optimizer", cat: "Life Hack" },
+  { text: "Phone wallpaper that counts down hours until the weekend. Motivational AND existential.", by: "⚡ Weekend Warrior", cat: "App Feature" },
+];
+
+// ── CANVAS PARTICLES ─────────────────────────────────────────────
+const cvs = document.getElementById('fx');
+const ctx = cvs.getContext('2d');
+let coins = [], sparks = [];
+function resize() { cvs.width = innerWidth; cvs.height = innerHeight; }
+addEventListener('resize', resize); resize();
+
+class Coin {
+  constructor() {
+    this.x  = Math.random() * innerWidth;
+    this.y  = -40 - Math.random() * 80;
+    this.vx = (Math.random() - .5) * 6;
+    this.vy = 2 + Math.random() * 4;
+    this.r  = 10 + Math.random() * 14;
+    this.rot = Math.random() * Math.PI * 2;
+    this.rv  = (Math.random() - .5) * .28;
+    this.a   = 1;
+    this.isGold = Math.random() > .4;
+  }
+  update() {
+    this.vy += .13; this.x += this.vx; this.y += this.vy; this.rot += this.rv;
+    if (this.y > innerHeight * .75) this.a -= .022;
+    return this.a > 0;
+  }
+  draw() {
+    const sx = Math.max(Math.abs(Math.cos(this.rot)), .04);
+    ctx.save(); ctx.globalAlpha = this.a;
+    ctx.translate(this.x, this.y); ctx.scale(sx, 1);
+    const hue = this.isGold ? 46 : 270;
+    const g = ctx.createRadialGradient(-this.r*.3,-this.r*.3,0,0,0,this.r);
+    g.addColorStop(0, `hsl(${hue+12},100%,82%)`);
+    g.addColorStop(.6, `hsl(${hue},85%,58%)`);
+    g.addColorStop(1, `hsl(${hue-10},75%,35%)`);
+    ctx.beginPath(); ctx.arc(0,0,this.r,0,Math.PI*2); ctx.fillStyle=g; ctx.fill();
+    ctx.strokeStyle=`hsl(${hue-12},65%,40%)`; ctx.lineWidth=1.5; ctx.stroke();
+    ctx.scale(1/sx,1);
+    ctx.fillStyle=`hsl(${hue-8},50%,28%)`;
+    ctx.font=`bold ${Math.round(this.r*.85)}px sans-serif`;
+    ctx.textAlign='center'; ctx.textBaseline='middle';
+    ctx.fillText(this.isGold ? '💡' : '✨',0,1);
+    ctx.restore();
+  }
+}
+
+class Spark {
+  constructor() {
+    this.x=(Math.random()-.5)*200+innerWidth/2; this.y=(Math.random()-.5)*100+innerHeight*.5;
+    this.vx=(Math.random()-.5)*12; this.vy=(Math.random()-.5)*12-4;
+    this.r=1.5+Math.random()*3; this.a=1;
+    this.hue=Math.random()>.5?270:46;
+  }
+  update() { this.x+=this.vx; this.y+=this.vy; this.vy+=.12; this.a-=.018; return this.a>0; }
+  draw() {
+    ctx.save(); ctx.globalAlpha=this.a;
+    ctx.shadowColor=`hsl(${this.hue},100%,72%)`; ctx.shadowBlur=10;
+    ctx.fillStyle=`hsl(${this.hue},100%,74%)`;
+    ctx.beginPath(); ctx.arc(this.x,this.y,this.r,0,Math.PI*2); ctx.fill(); ctx.restore();
+  }
+}
+
+function spawnCelebration() {
+  for (let i=0;i<70;i++) setTimeout(()=>coins.push(new Coin()),i*16);
+  for (let i=0;i<50;i++) setTimeout(()=>sparks.push(new Spark()),i*18);
+}
+
+(function loop() {
+  ctx.clearRect(0,0,cvs.width,cvs.height);
+  coins  = coins.filter(c=>{const ok=c.update();if(ok)c.draw();return ok;});
+  sparks = sparks.filter(s=>{const ok=s.update();if(ok)s.draw();return ok;});
+  requestAnimationFrame(loop);
+})();
+
+// ── UI STATE ─────────────────────────────────────────────────────
+let selectedCat   = '';
+let selectedEmoji = '';
+
+// Char counter
+document.getElementById('idea-text').addEventListener('input', function() {
+  const n = this.value.length;
+  const el = document.getElementById('char-count');
+  el.textContent = `${n} / 500`;
+  el.className = 'char-count' + (n > 420 ? ' warn' : '');
+});
+
+// Category chips
+document.querySelectorAll('.cat-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+    if (selectedCat === chip.dataset.cat) {
+      selectedCat = '';
+    } else {
+      chip.classList.add('active');
+      selectedCat = chip.dataset.cat;
+    }
+  });
+});
+
+// Emoji picker
+document.querySelectorAll('.ep-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
+    if (selectedEmoji === btn.dataset.emoji) {
+      selectedEmoji = '';
+    } else {
+      btn.classList.add('active');
+      selectedEmoji = btn.dataset.emoji;
+      const nameEl = document.getElementById('idea-name');
+      if (!nameEl.value) nameEl.value = btn.dataset.emoji;
+    }
+  });
+});
+
+// ── SUBMIT ───────────────────────────────────────────────────────
+async function submitIdea() {
+  const text = document.getElementById('idea-text').value.trim();
+  const name = document.getElementById('idea-name').value.trim() || 'Anonymous';
+  const errEl = document.getElementById('error-msg');
+
+  if (!text) {
+    document.getElementById('idea-text').focus();
+    document.getElementById('idea-text').style.borderColor = '#ff6655';
+    setTimeout(() => document.getElementById('idea-text').style.borderColor = '', 1500);
+    return;
+  }
+
+  // Dev/placeholder mode — skip real submission
+  if (FORMSPREE_ID === 'YOUR_FORM_ID') {
+    onSuccess();
+    return;
+  }
+
+  const btn = document.getElementById('btn-submit');
+  btn.classList.add('loading');
+  btn.querySelector('span').textContent = 'Sending...';
+  errEl.classList.remove('show');
+
+  try {
+    const res = await fetch(FORMSPREE_URL, {
+      method: 'POST',
+      headers: { 'Accept': 'application/json', 'Content-Type': 'application/json' },
+      body: JSON.stringify({ idea: text, name, category: selectedCat }),
+    });
+    if (res.ok) {
+      onSuccess();
+    } else {
+      throw new Error('Network error');
+    }
+  } catch {
+    btn.classList.remove('loading');
+    btn.querySelector('span').textContent = 'Drop Your Idea';
+    errEl.classList.add('show');
+  }
+}
+
+function onSuccess() {
+  document.getElementById('form-state').style.display = 'none';
+  document.getElementById('success-state').classList.add('show');
+
+  const fl = document.getElementById('flash');
+  fl.style.background = 'rgba(160,119,255,.15)';
+  setTimeout(() => { fl.style.background = 'transparent'; }, 400);
+
+  spawnCelebration();
+}
+
+function resetForm() {
+  document.getElementById('idea-text').value = '';
+  document.getElementById('idea-name').value = '';
+  document.getElementById('char-count').textContent = '0 / 500';
+  document.querySelectorAll('.cat-chip').forEach(c => c.classList.remove('active'));
+  document.querySelectorAll('.ep-btn').forEach(b => b.classList.remove('active'));
+  selectedCat = ''; selectedEmoji = '';
+  const btn = document.getElementById('btn-submit');
+  btn.classList.remove('loading');
+  btn.querySelector('span').textContent = 'Drop Your Idea';
+  document.getElementById('success-state').classList.remove('show');
+  document.getElementById('form-state').style.display = 'block';
+}
+
+// ── FEATURED WALL ─────────────────────────────────────────────────
+function buildWall() {
+  const wall = document.getElementById('wall');
+  wall.innerHTML = FEATURED.map(idea => `
+    <div class="idea-card">
+      <div class="idea-text">${idea.text}</div>
+      <div class="idea-meta">${idea.by} · ${idea.cat}</div>
+    </div>
+  `).join('');
+}
+
+buildWall();
+
+// Allow submitting with Ctrl/Cmd + Enter
+document.getElementById('idea-text').addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') submitIdea();
+});
+</script>
+</body>
+</html>

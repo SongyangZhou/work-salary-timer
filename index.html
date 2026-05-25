@@ -166,7 +166,9 @@ body::before {
 .facts span { color: var(--text); }
 
 .ticker { padding: 9px 16px; background: var(--bg); border-top: 1px solid var(--border); font-size: 13px; color: var(--dim); display: flex; align-items: center; gap: 8px; flex-shrink: 0; white-space: nowrap; overflow: hidden; }
-.ticker-text { overflow: hidden; text-overflow: ellipsis; }
+.ticker-text { overflow: hidden; text-overflow: ellipsis; flex: 1; min-width: 0; }
+.ideas-btn { flex-shrink: 0; background: rgba(200,150,12,.1); border: 1px solid var(--gdim2); border-radius: 20px; padding: 3px 10px; font-size: 12px; color: var(--gdim2); cursor: pointer; text-decoration: none; transition: background .2s, color .2s, border-color .2s; white-space: nowrap; }
+.ideas-btn:hover { background: rgba(200,150,12,.2); border-color: var(--gold2); color: var(--gold); }
 
 #toast {
   position: fixed; top: 80px; left: 50%; z-index: 200;
@@ -339,6 +341,7 @@ body::before {
     <div class="ticker">
       <span>📢</span>
       <span class="ticker-text" id="ticker">Welcome to Paycheck Tracker — let's get this bread! 💪</span>
+      <a class="ideas-btn" href="ideas.html">💡 Ideas</a>
     </div>
   </div>
 </div>
@@ -450,11 +453,21 @@ const TICKERS = [
   'Someone just hit Reply All on that email...',
   'The printer is jammed. Again.',
   'A wild meeting appeared in your calendar!',
-  'Someone microwaved fish in the break room...',
+  'Someone microwaved fish in the break room. Everyone suffers together. 🐟',
   'System update required. Please restart.',
-  'You\'ve been voluntold for a new project.',
+  'You\'ve been voluntold for a new project. 📢',
   'Free donuts in the kitchen! (They\'re gone.)',
   'That meeting could have been an email.',
+  'Currently in a meeting with no idea why you were invited. Still getting paid.',
+  'Nature called. You answered. Most productive 4 minutes of the day.',
+  'Zoning out so hard you accidentally solved a problem from last quarter.',
+  'Restroom break. The only place with zero Slack notifications. 🚽',
+  'Casual 15-minute chat with the cute coworker across from you. Extremely productive.',
+  'Sir, this is a Wendy\'s — oh wait, just another pointless standup.',
+  'Your coworker microwaved fish AGAIN. Send thoughts and prayers. 🙏',
+  'Daydreaming so intensely you briefly became a millionaire.',
+  'Sitting in the meeting that has nothing to do with you... 0% relevance, 100% pay.',
+  'Made eye contact with the attractive coworker. Heart rate +200bpm. Still earning.',
   'Keep grinding — every second counts! 💪',
   'Your future self is grateful for your effort today.',
   'Money doesn\'t sleep, and neither do you.',
@@ -465,6 +478,11 @@ const TICKERS = [
   'Another hour down. Another milestone closer.',
   'Side hustle? Nah. This IS the hustle.',
   'TGIF... or is it Tuesday? Either way, keep earning.',
+  'The meeting started 12 minutes late. The timer did not.',
+  'Pro tip: looking busy is a transferable skill.',
+  'Current status: professionally staring at a spreadsheet.',
+  'Your coworker is on their 4th coffee. You\'re on your 4th yawn. Same energy.',
+  'Bathroom break complete. Refreshed. Refocused. Still underpaid.',
 ];
 
 const LEVEL_UP_MSG = [
