@@ -212,12 +212,108 @@ body::before {
 .panels::-webkit-scrollbar { width: 3px; }
 .panels::-webkit-scrollbar-track { background: transparent; }
 .panels::-webkit-scrollbar-thumb { background: var(--gdim); border-radius: 2px; }
+
+/* ── WELCOME ── */
+#welcome {
+  position: fixed; inset: 0; z-index: 50;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  padding: 32px 24px; text-align: center;
+  background: var(--bg);
+  animation: wFadeIn .6s ease both;
+}
+#welcome.out { animation: wFadeOut .5s ease forwards; pointer-events: none; }
+@keyframes wFadeIn  { from { opacity: 0; transform: scale(1.03); } to { opacity: 1; transform: none; } }
+@keyframes wFadeOut { from { opacity: 1; } to { opacity: 0; } }
+
+.w-eyebrow {
+  font-size: clamp(11px, 2vw, 14px);
+  letter-spacing: 5px; text-transform: uppercase;
+  color: var(--gold2); margin-bottom: 28px;
+}
+.w-h1 {
+  font-family: Georgia, 'Times New Roman', serif;
+  font-size: clamp(48px, 11vw, 108px);
+  font-weight: 300; line-height: 1.05;
+  color: var(--gold);
+  text-shadow: 0 0 60px rgba(200,150,12,.35), 0 0 120px rgba(200,150,12,.12);
+  margin-bottom: 24px;
+}
+.w-h1 em { font-style: normal; display: block; }
+.w-sub {
+  font-size: clamp(17px, 3.5vw, 26px);
+  font-weight: 300; color: var(--text);
+  line-height: 1.55; max-width: 600px;
+  margin-bottom: 20px;
+}
+.w-body {
+  font-size: clamp(13px, 2vw, 16px);
+  color: var(--dim); line-height: 1.8;
+  max-width: 500px; margin-bottom: 44px;
+}
+.w-pills {
+  display: flex; flex-wrap: wrap; gap: 10px;
+  justify-content: center; margin-bottom: 48px;
+}
+.w-pill {
+  background: rgba(200,150,12,.08);
+  border: 1px solid var(--gdim2);
+  border-radius: 30px; padding: 7px 18px;
+  font-size: clamp(12px, 1.8vw, 14px); color: var(--text);
+}
+.w-cta {
+  background: linear-gradient(135deg, #b08008, #e8c060, #b08008);
+  background-size: 200% auto;
+  border: none; border-radius: 14px;
+  padding: clamp(14px, 3vw, 20px) clamp(36px, 8vw, 64px);
+  font-size: clamp(15px, 2.5vw, 19px); font-weight: 700;
+  letter-spacing: 1px; color: #0e0900;
+  cursor: pointer;
+  transition: background-position .4s, box-shadow .2s, transform .12s;
+  box-shadow: 0 6px 32px rgba(200,150,12,.35);
+}
+.w-cta:hover { background-position: right center; transform: translateY(-3px); box-shadow: 0 12px 48px rgba(200,150,12,.5); }
+.w-cta:active { transform: none; }
+.w-skip {
+  margin-top: 20px; font-size: 12px; color: var(--gdim2);
+  cursor: pointer; letter-spacing: 1px;
+  transition: color .2s;
+}
+.w-skip:hover { color: var(--dim); }
+.w-line {
+  width: 80px; height: 1px;
+  background: linear-gradient(90deg, transparent, var(--gold2), transparent);
+  margin: 0 auto 32px;
+}
 </style>
 </head>
 <body>
 
 <canvas id="fx"></canvas>
 <div id="flash"></div>
+
+<!-- WELCOME -->
+<div id="welcome">
+  <div class="w-eyebrow">💰 Paycheck Tracker</div>
+  <h1 class="w-h1">
+    <em>You're earning</em>
+    <em>right now.</em>
+  </h1>
+  <div class="w-line"></div>
+  <p class="w-sub">Watch every cent land in real time —<br>second by second.</p>
+  <p class="w-body">
+    Work is happening. Time is passing. Money is flowing.<br>
+    This app shows you exactly how much you've made today,<br>
+    so every boring meeting feels a little more worth it.
+  </p>
+  <div class="w-pills">
+    <span class="w-pill">⚡ Real-time counter</span>
+    <span class="w-pill">🪙 Coin rain milestones</span>
+    <span class="w-pill">🏆 Growth levels</span>
+    <span class="w-pill">📅 Payday countdown</span>
+  </div>
+  <button class="w-cta" onclick="dismissWelcome()">Start Tracking →</button>
+  <div class="w-skip" onclick="dismissWelcome()">already know the drill — skip</div>
+</div>
 
 <!-- SETUP -->
 <div id="setup">
@@ -430,6 +526,15 @@ const LS = {
   g: k => { try { return JSON.parse(localStorage.getItem(k)) } catch { return null } },
   s: (k, v) => localStorage.setItem(k, JSON.stringify(v))
 };
+
+function dismissWelcome() {
+  const el = document.getElementById('welcome');
+  el.classList.add('out');
+  LS.s('pt_seen', 1);
+  setTimeout(() => el.remove(), 520);
+}
+
+if (LS.g('pt_seen')) document.getElementById('welcome').remove();
 
 let cfg  = LS.g('pt_cfg') || {};
 let xp   = LS.g('pt_xp')  || 0;
