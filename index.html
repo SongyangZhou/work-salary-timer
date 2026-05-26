@@ -254,19 +254,24 @@ body::before {
         </select>
       </div>
     </div>
-    <div class="row2">
-      <div class="fl">
-        <label>Reward Milestone</label>
-        <input id="s-ms" type="number" value="10" min="1" placeholder="Earn how much to trigger">
-      </div>
-      <div class="fl">
-        <label>Payday (day of month)</label>
-        <select id="s-pd">
-          <option value="1">1st</option><option value="5">5th</option>
-          <option value="10">10th</option><option value="15">15th</option>
-          <option value="20">20th</option><option value="25" selected>25th</option>
-        </select>
-      </div>
+    <div class="fl">
+      <label>Reward Milestone</label>
+      <input id="s-ms" type="number" value="10" min="1" placeholder="Earn how much to trigger">
+    </div>
+    <div class="fl">
+      <label>Pay Frequency</label>
+      <select id="s-freq" onchange="syncFreqUI('s')">
+        <option value="monthly">Monthly</option>
+        <option value="biweekly">Biweekly (every 2 weeks)</option>
+      </select>
+    </div>
+    <div class="fl" id="s-pd-wrap">
+      <label>Payday (day of month, 1–31)</label>
+      <input id="s-pd" type="number" value="25" min="1" max="31" placeholder="e.g. 25">
+    </div>
+    <div class="fl" id="s-ref-wrap" style="display:none">
+      <label>Next (or last) payday date</label>
+      <input id="s-ref" type="date">
     </div>
     <button class="btn-go" onclick="boot()">Start Earning →</button>
   </div>
@@ -395,19 +400,24 @@ body::before {
         </select>
       </div>
     </div>
-    <div class="row2">
-      <div class="fl">
-        <label>Reward Milestone</label>
-        <input id="cfg-ms" type="number" min="1">
-      </div>
-      <div class="fl">
-        <label>Payday</label>
-        <select id="cfg-pd">
-          <option value="1">1st</option><option value="5">5th</option>
-          <option value="10">10th</option><option value="15">15th</option>
-          <option value="20">20th</option><option value="25">25th</option>
-        </select>
-      </div>
+    <div class="fl">
+      <label>Reward Milestone</label>
+      <input id="cfg-ms" type="number" min="1">
+    </div>
+    <div class="fl">
+      <label>Pay Frequency</label>
+      <select id="cfg-freq" onchange="syncFreqUI('cfg')">
+        <option value="monthly">Monthly</option>
+        <option value="biweekly">Biweekly (every 2 weeks)</option>
+      </select>
+    </div>
+    <div class="fl" id="cfg-pd-wrap">
+      <label>Payday (day of month, 1–31)</label>
+      <input id="cfg-pd" type="number" min="1" max="31">
+    </div>
+    <div class="fl" id="cfg-ref-wrap" style="display:none">
+      <label>Next (or last) payday date</label>
+      <input id="cfg-ref" type="date">
     </div>
 
     <button class="btn-save" onclick="saveCfg()">Save Settings →</button>
@@ -745,12 +755,14 @@ function tick() {
   document.getElementById('g-pct').textContent  = pct.toFixed(0) + '%';
   document.getElementById('g-sub').textContent  = `Goal: ${cfg.cur}${fd.toFixed(0)} · Earned: ${cfg.cur}${earned.toFixed(2)}`;
 
-  let nxt = new Date(now);
-  if (now.getDate() >= cfg.pd) nxt.setMonth(nxt.getMonth() + 1);
-  nxt.setDate(cfg.pd); nxt.setHours(0, 0, 0, 0);
+  const nxt = nextPayday(now);
   const diff = nxt - now, dd = ~~(diff/86400000), dh = ~~(diff%86400000/3600000);
-  document.getElementById('pd-big').textContent   = dd === 0 ? 'Payday is TODAY! 🎉' : `${dd} days ${dh} hours`;
-  document.getElementById('pd-small').textContent = `Payday: the ${cfg.pd}${['th','st','nd','rd'][Math.min(cfg.pd%10*(cfg.pd<4||cfg.pd>20?1:0),3)]} · ${cfg.cur}${cfg.sal.toLocaleString()}`;
+  document.getElementById('pd-big').textContent = dd === 0 ? 'Payday is TODAY! 🎉' : `${dd} days ${dh} hours`;
+  if ((cfg.freq || 'monthly') === 'biweekly') {
+    document.getElementById('pd-small').textContent = `Biweekly · Next: ${nxt.toLocaleDateString('en-US',{month:'short',day:'numeric'})} · ~${cfg.cur}${(cfg.sal/2).toLocaleString()}/paycheck`;
+  } else {
+    document.getElementById('pd-small').textContent = `Payday: the ${cfg.pd}${['th','st','nd','rd'][Math.min(cfg.pd%10*(cfg.pd<4||cfg.pd>20?1:0),3)]} · ${cfg.cur}${cfg.sal.toLocaleString()}`;
+  }
 
   const displayXP = xp + earned * .12;
   const lv = getLevel(displayXP);
@@ -787,13 +799,16 @@ function tick() {
 }
 
 function openCfg() {
-  document.getElementById('cfg-sal').value  = cfg.sal;
-  document.getElementById('cfg-on').value   = cfg.on;
-  document.getElementById('cfg-off').value  = cfg.off;
-  document.getElementById('cfg-days').value = cfg.days;
-  document.getElementById('cfg-cur').value  = cfg.cur;
-  document.getElementById('cfg-ms').value   = cfg.ms;
-  document.getElementById('cfg-pd').value   = cfg.pd;
+  document.getElementById('cfg-sal').value   = cfg.sal;
+  document.getElementById('cfg-on').value    = cfg.on;
+  document.getElementById('cfg-off').value   = cfg.off;
+  document.getElementById('cfg-days').value  = cfg.days;
+  document.getElementById('cfg-cur').value   = cfg.cur;
+  document.getElementById('cfg-ms').value    = cfg.ms;
+  document.getElementById('cfg-freq').value  = cfg.freq || 'monthly';
+  document.getElementById('cfg-pd').value    = cfg.pd || 25;
+  document.getElementById('cfg-ref').value   = cfg.ref || '';
+  syncFreqUI('cfg');
   syncTogs();
   document.getElementById('cfg').style.display = 'flex';
 }
@@ -806,7 +821,14 @@ function saveCfg() {
   cfg.days = +document.getElementById('cfg-days').value;
   cfg.cur  = document.getElementById('cfg-cur').value;
   cfg.ms   = +document.getElementById('cfg-ms').value || 10;
-  cfg.pd   = +document.getElementById('cfg-pd').value;
+  cfg.freq = document.getElementById('cfg-freq').value;
+  if (cfg.freq === 'biweekly') {
+    cfg.ref = document.getElementById('cfg-ref').value;
+    cfg.pd  = 25;
+  } else {
+    cfg.pd  = +document.getElementById('cfg-pd').value || 25;
+    cfg.ref = '';
+  }
   LS.s('pt_cfg', cfg);
   msN = ~~(todayEarned(new Date()) / cfg.ms);
   document.getElementById('cfg').style.display = 'none';
@@ -829,13 +851,42 @@ function doReset() {
   }
 }
 
+function nextPayday(now) {
+  if ((cfg.freq || 'monthly') === 'biweekly') {
+    const ref = new Date(cfg.ref); ref.setHours(0,0,0,0);
+    const today = new Date(now);   today.setHours(0,0,0,0);
+    const days = Math.round((today - ref) / 86400000);
+    const periods = Math.ceil(days / 14);
+    const nxt = new Date(ref);
+    nxt.setDate(nxt.getDate() + Math.max(periods, 0) * 14);
+    if (nxt <= today) nxt.setDate(nxt.getDate() + 14);
+    return nxt;
+  }
+  const nxt = new Date(now);
+  if (now.getDate() >= cfg.pd) nxt.setMonth(nxt.getMonth() + 1);
+  nxt.setDate(cfg.pd); nxt.setHours(0,0,0,0);
+  return nxt;
+}
+
+function syncFreqUI(prefix) {
+  const bi = document.getElementById(prefix + '-freq').value === 'biweekly';
+  document.getElementById(prefix + '-pd-wrap').style.display  = bi ? 'none' : '';
+  document.getElementById(prefix + '-ref-wrap').style.display = bi ? '' : 'none';
+}
+
 function boot() {
   const sal = parseFloat(document.getElementById('s-sal').value);
   if (!sal || sal <= 0) { alert('Please enter a valid monthly salary'); return; }
+  const freq = document.getElementById('s-freq').value;
+  if (freq === 'biweekly' && !document.getElementById('s-ref').value) {
+    alert('Please enter your next (or last) payday date'); return;
+  }
   cfg = {
     sal, on: document.getElementById('s-on').value, off: document.getElementById('s-off').value,
     days: +document.getElementById('s-days').value, cur: document.getElementById('s-cur').value,
-    ms: +document.getElementById('s-ms').value || 10, pd: +document.getElementById('s-pd').value,
+    ms: +document.getElementById('s-ms').value || 10, freq,
+    pd:  freq === 'monthly' ? (+document.getElementById('s-pd').value || 25) : 25,
+    ref: freq === 'biweekly' ? document.getElementById('s-ref').value : '',
   };
   LS.s('pt_cfg', cfg);
   startMain();
